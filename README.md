@@ -6,7 +6,7 @@ Create analytical dashboard for a traffic governing body like National Highway T
 
 Goal is to better understand:
 
-* Where accidents occur accross the US?
+* Where accidents occur across the US?
 * Where do accident occur most often?
 * What impact do factors like like weather or time have on accident count or severity?
 
