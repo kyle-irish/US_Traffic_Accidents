@@ -1,0 +1,995 @@
+## Table of Contents
+
+1) Import libraries, geospatial file , and data
+
+2) Change state column format to match geoJSON file
+
+3) Check variables to be mapped for extreme values
+
+4) Add variables to be mapped grouped by state
+
+5) Create choropleth maps
+
+6) Plotting a heatmap
+
+7) Export data
+
+## 1
+Import libraries, geospatial file , and data
+
+#import libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib
+import os
+import folium
+import json
+
+#import geoJSON file
+map_file = r'C:\Users\Owner\Documents\Career Foundry\Tasks\Data Immersion Tasks\Traffic Project\Data\Original\us_states.json'
+
+#define path for data
+path = r'C:\Users\Owner\Documents\Career Foundry\Tasks\Data Immersion Tasks\Traffic Project\Data'
+
+#import data
+traffic = pd.read_csv(os.path.join(path, 'Prepared', 'v2_data_post_wrangling_and_vis_explore.csv'))
+
+#check shape
+traffic.shape
+
+pd.set_option('display.max_columns', None)
+traffic.head()
+
+#drop the added index column
+traffic = traffic.drop(columns = 'Unnamed: 0')
+
+## 2
+Change state column format to match geoJSON file
+
+#check what current 2 letter state names are in data frame
+traffic['State'].value_counts()
+
+#create for loop that changes states from 2 letter names to full capitalized
+long_state = []
+
+for value in traffic['State']:
+    if value == 'CA':
+        long_state.append('California')
+    elif value == 'FL':
+        long_state.append('Florida')
+    elif value == 'TX':
+        long_state.append('Texas')
+    elif value == 'NY':
+        long_state.append('New York')
+    elif value == 'NC':
+        long_state.append('North Carolina')
+    elif value == 'SC':
+        long_state.append('South Carolina')
+    elif value == 'OR':
+        long_state.append('Oregon')
+    elif value == 'PA':
+        long_state.append('Pennsylvania')
+    elif value == 'VA':
+        long_state.append('Virginia')
+    elif value == 'MN':
+        long_state.append('Minnesota')
+    elif value == 'IL':
+        long_state.append('Illinois')
+    elif value == 'GA':
+        long_state.append('Georgia')
+    elif value == 'MI':
+        long_state.append('Michigan')
+    elif value == 'AZ':
+        long_state.append('Arizona')
+    elif value == 'TN':
+        long_state.append('Tennessee')
+    elif value == 'MD':
+        long_state.append('Maryland')
+    elif value == 'NJ':
+        long_state.append('New Jersey')
+    elif value == 'LA':
+        long_state.append('Louisiana')
+    elif value == 'WA':
+        long_state.append('Washington')
+    elif value == 'OH':
+        long_state.append('Ohio')
+    elif value == 'UT':
+        long_state.append('Utah')
+    elif value == 'CO':
+        long_state.append('Colorado')
+    elif value == 'OK':
+        long_state.append('Oklahoma')
+    elif value == 'AL':
+        long_state.append('Alabama')
+    elif value == 'MO':
+        long_state.append('Missouri')
+    elif value == 'MA':
+        long_state.append('Massachusetts')
+    elif value == 'IN':
+        long_state.append('Indiana')
+    elif value == 'CT':
+        long_state.append('Connecticut')
+    elif value == 'KY':
+        long_state.append('Kentucky')
+    elif value == 'WI':
+        long_state.append('Wisconsin')
+    elif value == 'NE':
+        long_state.append('Nebraska')
+    elif value == 'IA':
+        long_state.append('Iowa')
+    elif value == 'RI':
+        long_state.append('Rhode Island')
+    elif value == 'NV':
+        long_state.append('Nevada')
+    elif value == 'KS':
+        long_state.append('Kansas')
+    elif value == 'NH':
+        long_state.append('New Hampshire')
+    elif value == 'MS':
+        long_state.append('Mississippi')
+    elif value == 'DC':
+        long_state.append('District of Columbia')
+    elif value == 'AR':
+        long_state.append('Arkansas')
+    elif value == 'DE':
+        long_state.append('Delaware')
+    elif value == 'ID':
+        long_state.append('Idaho')
+    elif value == 'NM':
+        long_state.append('New Mexico')
+    elif value == 'WV':
+        long_state.append('West Virginia')
+    elif value == 'MT':
+        long_state.append('Montana')
+    elif value == 'ME':
+        long_state.append('Maine')
+    elif value == 'VT':
+        long_state.append('Vermont')
+    elif value == 'ND':
+        long_state.append('North Dakota')
+    elif value == 'WY':
+        long_state.append('Wyoming')
+    elif value == 'SD':
+        long_state.append('South Dakota')
+    else:
+        long_state.append('Error')
+
+#add new column to data frame with long state names
+traffic['state'] = long_state
+
+#match counts of new columns against old state column
+traffic['state'].value_counts()
+
+#drop old state column
+traffic = traffic.drop(columns = 'State')
+
+## 3
+Check variables to be mapped for extreme values
+(Severity, Temperature(F), Precipitation(in), Side)
+
+#histogram for accidents per day variable
+sns.histplot(traffic['acdnt_per_day'], bins=20, kde = True)
+
+#histogram for severity variable
+sns.histplot(traffic['Severity'], bins=20, kde = True)
+
+#histogram for temperature variable
+sns.histplot(traffic['Temperature(F)'], bins=20, kde = True)
+
+#histogram for precipitation variable
+sns.histplot(traffic['Precipitation(in)'], bins=20, kde = True)
+
+#check for Precipitation values above 10
+traffic[traffic['Precipitation(in)'] > 10]
+
+#remove values over 10 from precipitation
+traffic = traffic[traffic['Precipitation(in)'] <= 10]
+
+traffic.shape
+
+## 4 
+Add variables to be mapped grouped by state (severity, temp, and precipitation)
+
+#set variables for the average severity for each state
+AL = traffic[traffic['state'] == 'Alabama']['Severity'].mean()
+AZ = traffic[traffic['state'] == 'Arizona']['Severity'].mean()
+AR = traffic[traffic['state'] == 'Arkansas']['Severity'].mean()
+CA = traffic[traffic['state'] == 'California']['Severity'].mean()
+CO = traffic[traffic['state'] == 'Colorado']['Severity'].mean()
+CT = traffic[traffic['state'] == 'Connecticut']['Severity'].mean()
+DE = traffic[traffic['state'] == 'Delaware']['Severity'].mean()
+DC = traffic[traffic['state'] == 'District of Columbia']['Severity'].mean()
+FL = traffic[traffic['state'] == 'Florida']['Severity'].mean()
+GA = traffic[traffic['state'] == 'Georgia']['Severity'].mean()
+ID = traffic[traffic['state'] == 'Idaho']['Severity'].mean()
+IL = traffic[traffic['state'] == 'Illinois']['Severity'].mean()
+IN = traffic[traffic['state'] == 'Indiana']['Severity'].mean()
+IA = traffic[traffic['state'] == 'Iowa']['Severity'].mean()
+KS = traffic[traffic['state'] == 'Kansas']['Severity'].mean()
+KY = traffic[traffic['state'] == 'Kentucky']['Severity'].mean()
+LA = traffic[traffic['state'] == 'Louisiana']['Severity'].mean()
+ME = traffic[traffic['state'] == 'Maine']['Severity'].mean()
+MD = traffic[traffic['state'] == 'Maryland']['Severity'].mean()
+MA = traffic[traffic['state'] == 'Massachusetts']['Severity'].mean()
+MI = traffic[traffic['state'] == 'Michigan']['Severity'].mean()
+MN = traffic[traffic['state'] == 'Minnesota']['Severity'].mean()
+MS = traffic[traffic['state'] == 'Mississippi']['Severity'].mean()
+MO = traffic[traffic['state'] == 'Missouri']['Severity'].mean()
+MT = traffic[traffic['state'] == 'Montana']['Severity'].mean()
+NE = traffic[traffic['state'] == 'Nebraska']['Severity'].mean()
+NV = traffic[traffic['state'] == 'Nevada']['Severity'].mean()
+NH = traffic[traffic['state'] == 'New Hampshire']['Severity'].mean()
+NJ = traffic[traffic['state'] == 'New Jersey']['Severity'].mean()
+NM = traffic[traffic['state'] == 'New Mexico']['Severity'].mean()
+NY = traffic[traffic['state'] == 'New York']['Severity'].mean()
+NC = traffic[traffic['state'] == 'North Carolina']['Severity'].mean()
+ND = traffic[traffic['state'] == 'North Dakota']['Severity'].mean()
+OH = traffic[traffic['state'] == 'Ohio']['Severity'].mean()
+OK = traffic[traffic['state'] == 'Oklahoma']['Severity'].mean()
+OR = traffic[traffic['state'] == 'Oregon']['Severity'].mean()
+PA = traffic[traffic['state'] == 'Pennsylvania']['Severity'].mean()
+RI = traffic[traffic['state'] == 'Rhode Island']['Severity'].mean()
+SC = traffic[traffic['state'] == 'South Carolina']['Severity'].mean()
+SD = traffic[traffic['state'] == 'South Dakota']['Severity'].mean()
+TN = traffic[traffic['state'] == 'Tennessee']['Severity'].mean()
+TX = traffic[traffic['state'] == 'Texas']['Severity'].mean()
+UT = traffic[traffic['state'] == 'Utah']['Severity'].mean()
+VT = traffic[traffic['state'] == 'Vermont']['Severity'].mean()
+VA = traffic[traffic['state'] == 'Virginia']['Severity'].mean()
+WA = traffic[traffic['state'] == 'Washington']['Severity'].mean()
+WV = traffic[traffic['state'] == 'West Virginia']['Severity'].mean()
+WI = traffic[traffic['state'] == 'Wisconsin']['Severity'].mean()
+WY = traffic[traffic['state'] == 'Wyoming']['Severity'].mean()
+
+#add the average severity for each state to a new column avg_state_sev
+
+traffic.loc[traffic['state'] == 'Alabama', 'avg_state_sev'] = AL
+traffic.loc[traffic['state'] == 'Arizona', 'avg_state_sev'] = AZ
+traffic.loc[traffic['state'] == 'Arkansas', 'avg_state_sev'] = AR
+traffic.loc[traffic['state'] == 'California', 'avg_state_sev'] = CA
+traffic.loc[traffic['state'] == 'Colorado', 'avg_state_sev'] = CO
+traffic.loc[traffic['state'] == 'Connecticut', 'avg_state_sev'] = CT
+traffic.loc[traffic['state'] == 'Delaware', 'avg_state_sev'] = DE
+traffic.loc[traffic['state'] == 'District of Columbia', 'avg_state_sev'] = DC
+traffic.loc[traffic['state'] == 'Florida', 'avg_state_sev'] = FL
+traffic.loc[traffic['state'] == 'Georgia', 'avg_state_sev'] = GA
+traffic.loc[traffic['state'] == 'Idaho', 'avg_state_sev'] = ID
+traffic.loc[traffic['state'] == 'Illinois', 'avg_state_sev'] = IL
+traffic.loc[traffic['state'] == 'Indiana', 'avg_state_sev'] = IN
+traffic.loc[traffic['state'] == 'Iowa', 'avg_state_sev'] = IA
+traffic.loc[traffic['state'] == 'Kansas', 'avg_state_sev'] = KS
+traffic.loc[traffic['state'] == 'Kentucky', 'avg_state_sev'] = KY
+traffic.loc[traffic['state'] == 'Louisiana', 'avg_state_sev'] = LA
+traffic.loc[traffic['state'] == 'Maine', 'avg_state_sev'] = ME
+traffic.loc[traffic['state'] == 'Maryland', 'avg_state_sev'] = MD
+traffic.loc[traffic['state'] == 'Massachusetts', 'avg_state_sev'] = MA
+traffic.loc[traffic['state'] == 'Michigan', 'avg_state_sev'] = MI
+traffic.loc[traffic['state'] == 'Minnesota', 'avg_state_sev'] = MN
+traffic.loc[traffic['state'] == 'Mississippi', 'avg_state_sev'] = MS
+traffic.loc[traffic['state'] == 'Missouri', 'avg_state_sev'] = MO
+traffic.loc[traffic['state'] == 'Montana', 'avg_state_sev'] = MT
+traffic.loc[traffic['state'] == 'Nebraska', 'avg_state_sev'] = NE
+traffic.loc[traffic['state'] == 'Nevada', 'avg_state_sev'] = NV
+traffic.loc[traffic['state'] == 'New Hampshire', 'avg_state_sev'] = NH
+traffic.loc[traffic['state'] == 'New Jersey', 'avg_state_sev'] = NJ
+traffic.loc[traffic['state'] == 'New Mexico', 'avg_state_sev'] = NM
+traffic.loc[traffic['state'] == 'New York', 'avg_state_sev'] = NY
+traffic.loc[traffic['state'] == 'North Carolina', 'avg_state_sev'] = NC
+traffic.loc[traffic['state'] == 'North Dakota', 'avg_state_sev'] = ND
+traffic.loc[traffic['state'] == 'Ohio', 'avg_state_sev'] = OH
+traffic.loc[traffic['state'] == 'Oklahoma', 'avg_state_sev'] = OK
+traffic.loc[traffic['state'] == 'Oregon', 'avg_state_sev'] = OR
+traffic.loc[traffic['state'] == 'Pennsylvania', 'avg_state_sev'] = PA
+traffic.loc[traffic['state'] == 'Rhode Island', 'avg_state_sev'] = RI
+traffic.loc[traffic['state'] == 'South Carolina', 'avg_state_sev'] = SC
+traffic.loc[traffic['state'] == 'South Dakota', 'avg_state_sev'] = SD
+traffic.loc[traffic['state'] == 'Tennessee', 'avg_state_sev'] = TN
+traffic.loc[traffic['state'] == 'Texas', 'avg_state_sev'] = TX
+traffic.loc[traffic['state'] == 'Utah', 'avg_state_sev'] = UT
+traffic.loc[traffic['state'] == 'Vermont', 'avg_state_sev'] = VT
+traffic.loc[traffic['state'] == 'Virginia', 'avg_state_sev'] = VA
+traffic.loc[traffic['state'] == 'Washington', 'avg_state_sev'] = WA
+traffic.loc[traffic['state'] == 'West Virginia', 'avg_state_sev'] = WV
+traffic.loc[traffic['state'] == 'Wisconsin', 'avg_state_sev'] = WI
+traffic.loc[traffic['state'] == 'Wyoming', 'avg_state_sev'] = WY
+
+#overwrite variables for the average Temperature for each state
+AL = traffic[traffic['state'] == 'Alabama']['Temperature(F)'].mean()
+AZ = traffic[traffic['state'] == 'Arizona']['Temperature(F)'].mean()
+AR = traffic[traffic['state'] == 'Arkansas']['Temperature(F)'].mean()
+CA = traffic[traffic['state'] == 'California']['Temperature(F)'].mean()
+CO = traffic[traffic['state'] == 'Colorado']['Temperature(F)'].mean()
+CT = traffic[traffic['state'] == 'Connecticut']['Temperature(F)'].mean()
+DE = traffic[traffic['state'] == 'Delaware']['Temperature(F)'].mean()
+DC = traffic[traffic['state'] == 'District of Columbia']['Temperature(F)'].mean()
+FL = traffic[traffic['state'] == 'Florida']['Temperature(F)'].mean()
+GA = traffic[traffic['state'] == 'Georgia']['Temperature(F)'].mean()
+ID = traffic[traffic['state'] == 'Idaho']['Temperature(F)'].mean()
+IL = traffic[traffic['state'] == 'Illinois']['Temperature(F)'].mean()
+IN = traffic[traffic['state'] == 'Indiana']['Temperature(F)'].mean()
+IA = traffic[traffic['state'] == 'Iowa']['Temperature(F)'].mean()
+KS = traffic[traffic['state'] == 'Kansas']['Temperature(F)'].mean()
+KY = traffic[traffic['state'] == 'Kentucky']['Temperature(F)'].mean()
+LA = traffic[traffic['state'] == 'Louisiana']['Temperature(F)'].mean()
+ME = traffic[traffic['state'] == 'Maine']['Temperature(F)'].mean()
+MD = traffic[traffic['state'] == 'Maryland']['Temperature(F)'].mean()
+MA = traffic[traffic['state'] == 'Massachusetts']['Temperature(F)'].mean()
+MI = traffic[traffic['state'] == 'Michigan']['Temperature(F)'].mean()
+MN = traffic[traffic['state'] == 'Minnesota']['Temperature(F)'].mean()
+MS = traffic[traffic['state'] == 'Mississippi']['Temperature(F)'].mean()
+MO = traffic[traffic['state'] == 'Missouri']['Temperature(F)'].mean()
+MT = traffic[traffic['state'] == 'Montana']['Temperature(F)'].mean()
+NE = traffic[traffic['state'] == 'Nebraska']['Temperature(F)'].mean()
+NV = traffic[traffic['state'] == 'Nevada']['Temperature(F)'].mean()
+NH = traffic[traffic['state'] == 'New Hampshire']['Temperature(F)'].mean()
+NJ = traffic[traffic['state'] == 'New Jersey']['Temperature(F)'].mean()
+NM = traffic[traffic['state'] == 'New Mexico']['Temperature(F)'].mean()
+NY = traffic[traffic['state'] == 'New York']['Temperature(F)'].mean()
+NC = traffic[traffic['state'] == 'North Carolina']['Temperature(F)'].mean()
+ND = traffic[traffic['state'] == 'North Dakota']['Temperature(F)'].mean()
+OH = traffic[traffic['state'] == 'Ohio']['Temperature(F)'].mean()
+OK = traffic[traffic['state'] == 'Oklahoma']['Temperature(F)'].mean()
+OR = traffic[traffic['state'] == 'Oregon']['Temperature(F)'].mean()
+PA = traffic[traffic['state'] == 'Pennsylvania']['Temperature(F)'].mean()
+RI = traffic[traffic['state'] == 'Rhode Island']['Temperature(F)'].mean()
+SC = traffic[traffic['state'] == 'South Carolina']['Temperature(F)'].mean()
+SD = traffic[traffic['state'] == 'South Dakota']['Temperature(F)'].mean()
+TN = traffic[traffic['state'] == 'Tennessee']['Temperature(F)'].mean()
+TX = traffic[traffic['state'] == 'Texas']['Temperature(F)'].mean()
+UT = traffic[traffic['state'] == 'Utah']['Temperature(F)'].mean()
+VT = traffic[traffic['state'] == 'Vermont']['Temperature(F)'].mean()
+VA = traffic[traffic['state'] == 'Virginia']['Temperature(F)'].mean()
+WA = traffic[traffic['state'] == 'Washington']['Temperature(F)'].mean()
+WV = traffic[traffic['state'] == 'West Virginia']['Temperature(F)'].mean()
+WI = traffic[traffic['state'] == 'Wisconsin']['Temperature(F)'].mean()
+WY = traffic[traffic['state'] == 'Wyoming']['Temperature(F)'].mean()
+
+#add the average Temperature for each state to a new column avg_state_temp
+traffic.loc[traffic['state'] == 'Alabama', 'avg_state_temp'] = AL
+traffic.loc[traffic['state'] == 'Arizona', 'avg_state_temp'] = AZ
+traffic.loc[traffic['state'] == 'Arkansas', 'avg_state_temp'] = AR
+traffic.loc[traffic['state'] == 'California', 'avg_state_temp'] = CA
+traffic.loc[traffic['state'] == 'Colorado', 'avg_state_temp'] = CO
+traffic.loc[traffic['state'] == 'Connecticut', 'avg_state_temp'] = CT
+traffic.loc[traffic['state'] == 'Delaware', 'avg_state_temp'] = DE
+traffic.loc[traffic['state'] == 'District of Columbia', 'avg_state_temp'] = DC
+traffic.loc[traffic['state'] == 'Florida', 'avg_state_temp'] = FL
+traffic.loc[traffic['state'] == 'Georgia', 'avg_state_temp'] = GA
+traffic.loc[traffic['state'] == 'Idaho', 'avg_state_temp'] = ID
+traffic.loc[traffic['state'] == 'Illinois', 'avg_state_temp'] = IL
+traffic.loc[traffic['state'] == 'Indiana', 'avg_state_temp'] = IN
+traffic.loc[traffic['state'] == 'Iowa', 'avg_state_temp'] = IA
+traffic.loc[traffic['state'] == 'Kansas', 'avg_state_temp'] = KS
+traffic.loc[traffic['state'] == 'Kentucky', 'avg_state_temp'] = KY
+traffic.loc[traffic['state'] == 'Louisiana', 'avg_state_temp'] = LA
+traffic.loc[traffic['state'] == 'Maine', 'avg_state_temp'] = ME
+traffic.loc[traffic['state'] == 'Maryland', 'avg_state_temp'] = MD
+traffic.loc[traffic['state'] == 'Massachusetts', 'avg_state_temp'] = MA
+traffic.loc[traffic['state'] == 'Michigan', 'avg_state_temp'] = MI
+traffic.loc[traffic['state'] == 'Minnesota', 'avg_state_temp'] = MN
+traffic.loc[traffic['state'] == 'Mississippi', 'avg_state_temp'] = MS
+traffic.loc[traffic['state'] == 'Missouri', 'avg_state_temp'] = MO
+traffic.loc[traffic['state'] == 'Montana', 'avg_state_temp'] = MT
+traffic.loc[traffic['state'] == 'Nebraska', 'avg_state_temp'] = NE
+traffic.loc[traffic['state'] == 'Nevada', 'avg_state_temp'] = NV
+traffic.loc[traffic['state'] == 'New Hampshire', 'avg_state_temp'] = NH
+traffic.loc[traffic['state'] == 'New Jersey', 'avg_state_temp'] = NJ
+traffic.loc[traffic['state'] == 'New Mexico', 'avg_state_temp'] = NM
+traffic.loc[traffic['state'] == 'New York', 'avg_state_temp'] = NY
+traffic.loc[traffic['state'] == 'North Carolina', 'avg_state_temp'] = NC
+traffic.loc[traffic['state'] == 'North Dakota', 'avg_state_temp'] = ND
+traffic.loc[traffic['state'] == 'Ohio', 'avg_state_temp'] = OH
+traffic.loc[traffic['state'] == 'Oklahoma', 'avg_state_temp'] = OK
+traffic.loc[traffic['state'] == 'Oregon', 'avg_state_temp'] = OR
+traffic.loc[traffic['state'] == 'Pennsylvania', 'avg_state_temp'] = PA
+traffic.loc[traffic['state'] == 'Rhode Island', 'avg_state_temp'] = RI
+traffic.loc[traffic['state'] == 'South Carolina', 'avg_state_temp'] = SC
+traffic.loc[traffic['state'] == 'South Dakota', 'avg_state_temp'] = SD
+traffic.loc[traffic['state'] == 'Tennessee', 'avg_state_temp'] = TN
+traffic.loc[traffic['state'] == 'Texas', 'avg_state_temp'] = TX
+traffic.loc[traffic['state'] == 'Utah', 'avg_state_temp'] = UT
+traffic.loc[traffic['state'] == 'Vermont', 'avg_state_temp'] = VT
+traffic.loc[traffic['state'] == 'Virginia', 'avg_state_temp'] = VA
+traffic.loc[traffic['state'] == 'Washington', 'avg_state_temp'] = WA
+traffic.loc[traffic['state'] == 'West Virginia', 'avg_state_temp'] = WV
+traffic.loc[traffic['state'] == 'Wisconsin', 'avg_state_temp'] = WI
+traffic.loc[traffic['state'] == 'Wyoming', 'avg_state_temp'] = WY
+
+#overwrite variables for the Precipitation for each state
+AL = traffic[traffic['state'] == 'Alabama']['Precipitation(in)'].mean()
+AZ = traffic[traffic['state'] == 'Arizona']['Precipitation(in)'].mean()
+AR = traffic[traffic['state'] == 'Arkansas']['Precipitation(in)'].mean()
+CA = traffic[traffic['state'] == 'California']['Precipitation(in)'].mean()
+CO = traffic[traffic['state'] == 'Colorado']['Precipitation(in)'].mean()
+CT = traffic[traffic['state'] == 'Connecticut']['Precipitation(in)'].mean()
+DE = traffic[traffic['state'] == 'Delaware']['Precipitation(in)'].mean()
+DC = traffic[traffic['state'] == 'District of Columbia']['Precipitation(in)'].mean()
+FL = traffic[traffic['state'] == 'Florida']['Precipitation(in)'].mean()
+GA = traffic[traffic['state'] == 'Georgia']['Precipitation(in)'].mean()
+ID = traffic[traffic['state'] == 'Idaho']['Precipitation(in)'].mean()
+IL = traffic[traffic['state'] == 'Illinois']['Precipitation(in)'].mean()
+IN = traffic[traffic['state'] == 'Indiana']['Precipitation(in)'].mean()
+IA = traffic[traffic['state'] == 'Iowa']['Precipitation(in)'].mean()
+KS = traffic[traffic['state'] == 'Kansas']['Precipitation(in)'].mean()
+KY = traffic[traffic['state'] == 'Kentucky']['Precipitation(in)'].mean()
+LA = traffic[traffic['state'] == 'Louisiana']['Precipitation(in)'].mean()
+ME = traffic[traffic['state'] == 'Maine']['Precipitation(in)'].mean()
+MD = traffic[traffic['state'] == 'Maryland']['Precipitation(in)'].mean()
+MA = traffic[traffic['state'] == 'Massachusetts']['Precipitation(in)'].mean()
+MI = traffic[traffic['state'] == 'Michigan']['Precipitation(in)'].mean()
+MN = traffic[traffic['state'] == 'Minnesota']['Precipitation(in)'].mean()
+MS = traffic[traffic['state'] == 'Mississippi']['Precipitation(in)'].mean()
+MO = traffic[traffic['state'] == 'Missouri']['Precipitation(in)'].mean()
+MT = traffic[traffic['state'] == 'Montana']['Precipitation(in)'].mean()
+NE = traffic[traffic['state'] == 'Nebraska']['Precipitation(in)'].mean()
+NV = traffic[traffic['state'] == 'Nevada']['Precipitation(in)'].mean()
+NH = traffic[traffic['state'] == 'New Hampshire']['Precipitation(in)'].mean()
+NJ = traffic[traffic['state'] == 'New Jersey']['Precipitation(in)'].mean()
+NM = traffic[traffic['state'] == 'New Mexico']['Precipitation(in)'].mean()
+NY = traffic[traffic['state'] == 'New York']['Precipitation(in)'].mean()
+NC = traffic[traffic['state'] == 'North Carolina']['Precipitation(in)'].mean()
+ND = traffic[traffic['state'] == 'North Dakota']['Precipitation(in)'].mean()
+OH = traffic[traffic['state'] == 'Ohio']['Precipitation(in)'].mean()
+OK = traffic[traffic['state'] == 'Oklahoma']['Precipitation(in)'].mean()
+OR = traffic[traffic['state'] == 'Oregon']['Precipitation(in)'].mean()
+PA = traffic[traffic['state'] == 'Pennsylvania']['Precipitation(in)'].mean()
+RI = traffic[traffic['state'] == 'Rhode Island']['Precipitation(in)'].mean()
+SC = traffic[traffic['state'] == 'South Carolina']['Precipitation(in)'].mean()
+SD = traffic[traffic['state'] == 'South Dakota']['Precipitation(in)'].mean()
+TN = traffic[traffic['state'] == 'Tennessee']['Precipitation(in)'].mean()
+TX = traffic[traffic['state'] == 'Texas']['Precipitation(in)'].mean()
+UT = traffic[traffic['state'] == 'Utah']['Precipitation(in)'].mean()
+VT = traffic[traffic['state'] == 'Vermont']['Precipitation(in)'].mean()
+VA = traffic[traffic['state'] == 'Virginia']['Precipitation(in)'].mean()
+WA = traffic[traffic['state'] == 'Washington']['Precipitation(in)'].mean()
+WV = traffic[traffic['state'] == 'West Virginia']['Precipitation(in)'].mean()
+WI = traffic[traffic['state'] == 'Wisconsin']['Precipitation(in)'].mean()
+WY = traffic[traffic['state'] == 'Wyoming']['Precipitation(in)'].mean()
+
+
+#add the average Precipitation for each state to a new column avg_state_rain
+traffic.loc[traffic['state'] == 'Alabama', 'avg_state_rain'] = AL
+traffic.loc[traffic['state'] == 'Arizona', 'avg_state_rain'] = AZ
+traffic.loc[traffic['state'] == 'Arkansas', 'avg_state_rain'] = AR
+traffic.loc[traffic['state'] == 'California', 'avg_state_rain'] = CA
+traffic.loc[traffic['state'] == 'Colorado', 'avg_state_rain'] = CO
+traffic.loc[traffic['state'] == 'Connecticut', 'avg_state_rain'] = CT
+traffic.loc[traffic['state'] == 'Delaware', 'avg_state_rain'] = DE
+traffic.loc[traffic['state'] == 'District of Columbia', 'avg_state_rain'] = DC
+traffic.loc[traffic['state'] == 'Florida', 'avg_state_rain'] = FL
+traffic.loc[traffic['state'] == 'Georgia', 'avg_state_rain'] = GA
+traffic.loc[traffic['state'] == 'Idaho', 'avg_state_rain'] = ID
+traffic.loc[traffic['state'] == 'Illinois', 'avg_state_rain'] = IL
+traffic.loc[traffic['state'] == 'Indiana', 'avg_state_rain'] = IN
+traffic.loc[traffic['state'] == 'Iowa', 'avg_state_rain'] = IA
+traffic.loc[traffic['state'] == 'Kansas', 'avg_state_rain'] = KS
+traffic.loc[traffic['state'] == 'Kentucky', 'avg_state_rain'] = KY
+traffic.loc[traffic['state'] == 'Louisiana', 'avg_state_rain'] = LA
+traffic.loc[traffic['state'] == 'Maine', 'avg_state_rain'] = ME
+traffic.loc[traffic['state'] == 'Maryland', 'avg_state_rain'] = MD
+traffic.loc[traffic['state'] == 'Massachusetts', 'avg_state_rain'] = MA
+traffic.loc[traffic['state'] == 'Michigan', 'avg_state_rain'] = MI
+traffic.loc[traffic['state'] == 'Minnesota', 'avg_state_rain'] = MN
+traffic.loc[traffic['state'] == 'Mississippi', 'avg_state_rain'] = MS
+traffic.loc[traffic['state'] == 'Missouri', 'avg_state_rain'] = MO
+traffic.loc[traffic['state'] == 'Montana', 'avg_state_rain'] = MT
+traffic.loc[traffic['state'] == 'Nebraska', 'avg_state_rain'] = NE
+traffic.loc[traffic['state'] == 'Nevada', 'avg_state_rain'] = NV
+traffic.loc[traffic['state'] == 'New Hampshire', 'avg_state_rain'] = NH
+traffic.loc[traffic['state'] == 'New Jersey', 'avg_state_rain'] = NJ
+traffic.loc[traffic['state'] == 'New Mexico', 'avg_state_rain'] = NM
+traffic.loc[traffic['state'] == 'New York', 'avg_state_rain'] = NY
+traffic.loc[traffic['state'] == 'North Carolina', 'avg_state_rain'] = NC
+traffic.loc[traffic['state'] == 'North Dakota', 'avg_state_rain'] = ND
+traffic.loc[traffic['state'] == 'Ohio', 'avg_state_rain'] = OH
+traffic.loc[traffic['state'] == 'Oklahoma', 'avg_state_rain'] = OK
+traffic.loc[traffic['state'] == 'Oregon', 'avg_state_rain'] = OR
+traffic.loc[traffic['state'] == 'Pennsylvania', 'avg_state_rain'] = PA
+traffic.loc[traffic['state'] == 'Rhode Island', 'avg_state_rain'] = RI
+traffic.loc[traffic['state'] == 'South Carolina', 'avg_state_rain'] = SC
+traffic.loc[traffic['state'] == 'South Dakota', 'avg_state_rain'] = SD
+traffic.loc[traffic['state'] == 'Tennessee', 'avg_state_rain'] = TN
+traffic.loc[traffic['state'] == 'Texas', 'avg_state_rain'] = TX
+traffic.loc[traffic['state'] == 'Utah', 'avg_state_rain'] = UT
+traffic.loc[traffic['state'] == 'Vermont', 'avg_state_rain'] = VT
+traffic.loc[traffic['state'] == 'Virginia', 'avg_state_rain'] = VA
+traffic.loc[traffic['state'] == 'Washington', 'avg_state_rain'] = WA
+traffic.loc[traffic['state'] == 'West Virginia', 'avg_state_rain'] = WV
+traffic.loc[traffic['state'] == 'Wisconsin', 'avg_state_rain'] = WI
+traffic.loc[traffic['state'] == 'Wyoming', 'avg_state_rain'] = WY
+
+
+#reassign state variables with the rate of accidents per day. this is the total count dates divided by the count of unique dates
+Alabama_df = traffic[traffic['state'] == 'Alabama']
+count_Alabama = Alabama_df.start_date.nunique()
+sum_Alabama = Alabama_df.start_date.count()
+AL = sum_Alabama/count_Alabama
+
+Arizona_df = traffic[traffic['state'] == 'Arizona']
+count_Arizona = Arizona_df.start_date.nunique()
+sum_Arizona = Arizona_df.start_date.count()
+AZ = sum_Arizona/count_Arizona
+
+Arkansas_df = traffic[traffic['state'] == 'Arkansas']
+count_Arkansas = Arkansas_df.start_date.nunique()
+sum_Arkansas = Arkansas_df.start_date.count()
+AR = sum_Arkansas/count_Arkansas
+
+California_df = traffic[traffic['state'] == 'California']
+count_California = California_df.start_date.nunique()
+sum_California = California_df.start_date.count()
+CA = sum_California/count_California
+
+Colorado_df = traffic[traffic['state'] == 'Colorado']
+count_Colorado = Colorado_df.start_date.nunique()
+sum_Colorado = Colorado_df.start_date.count()
+CO = sum_Colorado/count_Colorado
+
+Connecticut_df = traffic[traffic['state'] == 'Connecticut']
+count_Connecticut = Connecticut_df.start_date.nunique()
+sum_Connecticut = Connecticut_df.start_date.count()
+CT = sum_Connecticut/count_Connecticut
+
+Delaware_df = traffic[traffic['state'] == 'Delaware']
+count_Delaware = Delaware_df.start_date.nunique()
+sum_Delaware = Delaware_df.start_date.count()
+DE = sum_Delaware/count_Delaware
+
+District_of_Columbia_df = traffic[traffic['state'] == 'District of Columbia']
+count_District_of_Columbia = District_of_Columbia_df.start_date.nunique()
+sum_District_of_Columbia = District_of_Columbia_df.start_date.count()
+DC = sum_District_of_Columbia/count_District_of_Columbia
+
+Florida_df = traffic[traffic['state'] == 'Florida']
+count_Florida = Florida_df.start_date.nunique()
+sum_Florida = Florida_df.start_date.count()
+FL = sum_Florida/count_Florida
+
+Georgia_df = traffic[traffic['state'] == 'Georgia']
+count_Georgia = Georgia_df.start_date.nunique()
+sum_Georgia = Georgia_df.start_date.count()
+GA = sum_Georgia/count_Georgia
+
+Idaho_df = traffic[traffic['state'] == 'Idaho']
+count_Idaho = Idaho_df.start_date.nunique()
+sum_Idaho = Idaho_df.start_date.count()
+ID = sum_Idaho/count_Idaho
+
+Illinois_df = traffic[traffic['state'] == 'Illinois']
+count_Illinois = Illinois_df.start_date.nunique()
+sum_Illinois = Illinois_df.start_date.count()
+IL = sum_Illinois/count_Illinois
+
+Indiana_df = traffic[traffic['state'] == 'Indiana']
+count_Indiana = Indiana_df.start_date.nunique()
+sum_Indiana = Indiana_df.start_date.count()
+IN = sum_Indiana/count_Indiana
+
+Iowa_df = traffic[traffic['state'] == 'Iowa']
+count_Iowa = Iowa_df.start_date.nunique()
+sum_Iowa = Iowa_df.start_date.count()
+IA = sum_Iowa/count_Iowa
+
+Kansas_df = traffic[traffic['state'] == 'Kansas']
+count_Kansas = Kansas_df.start_date.nunique()
+sum_Kansas = Kansas_df.start_date.count()
+KS = sum_Kansas/count_Kansas
+
+Kentucky_df = traffic[traffic['state'] == 'Kentucky']
+count_Kentucky = Kentucky_df.start_date.nunique()
+sum_Kentucky = Kentucky_df.start_date.count()
+KY = sum_Kentucky/count_Kentucky
+
+Louisiana_df = traffic[traffic['state'] == 'Louisiana']
+count_Louisiana = Louisiana_df.start_date.nunique()
+sum_Louisiana = Louisiana_df.start_date.count()
+LA = sum_Louisiana/count_Louisiana
+
+Maine_df = traffic[traffic['state'] == 'Maine']
+count_Maine = Maine_df.start_date.nunique()
+sum_Maine = Maine_df.start_date.count()
+ME = sum_Maine/count_Maine
+
+Maryland_df = traffic[traffic['state'] == 'Maryland']
+count_Maryland = Maryland_df.start_date.nunique()
+sum_Maryland = Maryland_df.start_date.count()
+MD = sum_Maryland/count_Maryland
+
+Massachusetts_df = traffic[traffic['state'] == 'Massachusetts']
+count_Massachusetts = Massachusetts_df.start_date.nunique()
+sum_Massachusetts = Massachusetts_df.start_date.count()
+MA = sum_Massachusetts/count_Massachusetts
+
+Michigan_df = traffic[traffic['state'] == 'Michigan']
+count_Michigan = Michigan_df.start_date.nunique()
+sum_Michigan = Michigan_df.start_date.count()
+MI = sum_Michigan/count_Michigan
+
+Minnesota_df = traffic[traffic['state'] == 'Minnesota']
+count_Minnesota = Minnesota_df.start_date.nunique()
+sum_Minnesota = Minnesota_df.start_date.count()
+MN = sum_Minnesota/count_Minnesota
+
+Mississippi_df = traffic[traffic['state'] == 'Mississippi']
+count_Mississippi = Mississippi_df.start_date.nunique()
+sum_Mississippi = Mississippi_df.start_date.count()
+MS = sum_Mississippi/count_Mississippi
+
+Missouri_df = traffic[traffic['state'] == 'Missouri']
+count_Missouri = Missouri_df.start_date.nunique()
+sum_Missouri = Missouri_df.start_date.count()
+MO = sum_Missouri/count_Missouri
+
+Montana_df = traffic[traffic['state'] == 'Montana']
+count_Montana = Montana_df.start_date.nunique()
+sum_Montana = Montana_df.start_date.count()
+MT = sum_Montana/count_Montana
+
+Nebraska_df = traffic[traffic['state'] == 'Nebraska']
+count_Nebraska = Nebraska_df.start_date.nunique()
+sum_Nebraska = Nebraska_df.start_date.count()
+NE = sum_Nebraska/count_Nebraska
+
+Nevada_df = traffic[traffic['state'] == 'Nevada']
+count_Nevada = Nevada_df.start_date.nunique()
+sum_Nevada = Nevada_df.start_date.count()
+NV = sum_Nevada/count_Nevada
+
+New_Hampshire_df = traffic[traffic['state'] == 'New Hampshire']
+count_New_Hampshire = New_Hampshire_df.start_date.nunique()
+sum_New_Hampshire = New_Hampshire_df.start_date.count()
+NH = sum_New_Hampshire/count_New_Hampshire
+
+New_Jersey_df = traffic[traffic['state'] == 'New Jersey']
+count_New_Jersey = New_Jersey_df.start_date.nunique()
+sum_New_Jersey = New_Jersey_df.start_date.count()
+NJ = sum_New_Jersey/count_New_Jersey
+
+New_Mexico_df = traffic[traffic['state'] == 'New Mexico']
+count_New_Mexico = New_Mexico_df.start_date.nunique()
+sum_New_Mexico = New_Mexico_df.start_date.count()
+NM = sum_New_Mexico/count_New_Mexico
+
+New_York_df = traffic[traffic['state'] == 'New York']
+count_New_York = New_York_df.start_date.nunique()
+sum_New_York = New_York_df.start_date.count()
+NY = sum_New_York/count_New_York
+
+North_Carolina_df = traffic[traffic['state'] == 'North Carolina']
+count_North_Carolina = North_Carolina_df.start_date.nunique()
+sum_North_Carolina = North_Carolina_df.start_date.count()
+NC = sum_North_Carolina/count_North_Carolina
+
+North_Dakota_df = traffic[traffic['state'] == 'North Dakota']
+count_North_Dakota = North_Dakota_df.start_date.nunique()
+sum_North_Dakota = North_Dakota_df.start_date.count()
+ND = sum_North_Dakota/count_North_Dakota
+
+Ohio_df = traffic[traffic['state'] == 'Ohio']
+count_Ohio = Ohio_df.start_date.nunique()
+sum_Ohio = Ohio_df.start_date.count()
+OH = sum_Ohio/count_Ohio
+
+Oklahoma_df = traffic[traffic['state'] == 'Oklahoma']
+count_Oklahoma = Oklahoma_df.start_date.nunique()
+sum_Oklahoma = Oklahoma_df.start_date.count()
+OK = sum_Oklahoma/count_Oklahoma
+
+Oregon_df = traffic[traffic['state'] == 'Oregon']
+count_Oregon = Oregon_df.start_date.nunique()
+sum_Oregon = Oregon_df.start_date.count()
+OR = sum_Oregon/count_Oregon
+
+Pennsylvania_df = traffic[traffic['state'] == 'Pennsylvania']
+count_Pennsylvania = Pennsylvania_df.start_date.nunique()
+sum_Pennsylvania = Pennsylvania_df.start_date.count()
+PA = sum_Pennsylvania/count_Pennsylvania
+
+Rhode_Island_df = traffic[traffic['state'] == 'Rhode Island']
+count_Rhode_Island = Rhode_Island_df.start_date.nunique()
+sum_Rhode_Island = Rhode_Island_df.start_date.count()
+RI = sum_Rhode_Island/count_Rhode_Island
+
+South_Carolina_df = traffic[traffic['state'] == 'South Carolina']
+count_South_Carolina = South_Carolina_df.start_date.nunique()
+sum_South_Carolina = South_Carolina_df.start_date.count()
+SC = sum_South_Carolina/count_South_Carolina
+
+South_Dakota_df = traffic[traffic['state'] == 'South Dakota']
+count_South_Dakota = South_Dakota_df.start_date.nunique()
+sum_South_Dakota = South_Dakota_df.start_date.count()
+SD = sum_South_Dakota/count_South_Dakota
+
+Tennessee_df = traffic[traffic['state'] == 'Tennessee']
+count_Tennessee = Tennessee_df.start_date.nunique()
+sum_Tennessee = Tennessee_df.start_date.count()
+TN = sum_Tennessee/count_Tennessee
+
+Texas_df = traffic[traffic['state'] == 'Texas']
+count_Texas = Texas_df.start_date.nunique()
+sum_Texas = Texas_df.start_date.count()
+TX = sum_Texas/count_Texas
+
+Utah_df = traffic[traffic['state'] == 'Utah']
+count_Utah = Utah_df.start_date.nunique()
+sum_Utah = Utah_df.start_date.count()
+UT = sum_Utah/count_Utah
+
+Vermont_df = traffic[traffic['state'] == 'Vermont']
+count_Vermont = Vermont_df.start_date.nunique()
+sum_Vermont = Vermont_df.start_date.count()
+VT = sum_Vermont/count_Vermont
+
+Virginia_df = traffic[traffic['state'] == 'Virginia']
+count_Virginia = Virginia_df.start_date.nunique()
+sum_Virginia = Virginia_df.start_date.count()
+VA = sum_Virginia/count_Virginia
+
+Washington_df = traffic[traffic['state'] == 'Washington']
+count_Washington = Washington_df.start_date.nunique()
+sum_Washington = Washington_df.start_date.count()
+WA = sum_Washington/count_Washington
+
+West_Virginia_df = traffic[traffic['state'] == 'West Virginia']
+count_West_Virginia = West_Virginia_df.start_date.nunique()
+sum_West_Virginia = West_Virginia_df.start_date.count()
+WV = sum_West_Virginia/count_West_Virginia
+
+Wisconsin_df = traffic[traffic['state'] == 'Wisconsin']
+count_Wisconsin = Wisconsin_df.start_date.nunique()
+sum_Wisconsin = Wisconsin_df.start_date.count()
+WI = sum_Wisconsin/count_Wisconsin
+
+Wyoming_df = traffic[traffic['state'] == 'Wyoming']
+count_Wyoming = Wyoming_df.start_date.nunique()
+sum_Wyoming = Wyoming_df.start_date.count()
+WY = sum_Wyoming/count_Wyoming
+
+#add the average count of accidents per day for each state to a new column avg_state_acdnt_per_day
+traffic.loc[traffic['state'] == 'Alabama', 'avg_state_acdnt_per_day'] = AL
+traffic.loc[traffic['state'] == 'Arizona', 'avg_state_acdnt_per_day'] = AZ
+traffic.loc[traffic['state'] == 'Arkansas', 'avg_state_acdnt_per_day'] = AR
+traffic.loc[traffic['state'] == 'California', 'avg_state_acdnt_per_day'] = CA
+traffic.loc[traffic['state'] == 'Colorado', 'avg_state_acdnt_per_day'] = CO
+traffic.loc[traffic['state'] == 'Connecticut', 'avg_state_acdnt_per_day'] = CT
+traffic.loc[traffic['state'] == 'Delaware', 'avg_state_acdnt_per_day'] = DE
+traffic.loc[traffic['state'] == 'District of Columbia', 'avg_state_acdnt_per_day'] = DC
+traffic.loc[traffic['state'] == 'Florida', 'avg_state_acdnt_per_day'] = FL
+traffic.loc[traffic['state'] == 'Georgia', 'avg_state_acdnt_per_day'] = GA
+traffic.loc[traffic['state'] == 'Idaho', 'avg_state_acdnt_per_day'] = ID
+traffic.loc[traffic['state'] == 'Illinois', 'avg_state_acdnt_per_day'] = IL
+traffic.loc[traffic['state'] == 'Indiana', 'avg_state_acdnt_per_day'] = IN
+traffic.loc[traffic['state'] == 'Iowa', 'avg_state_acdnt_per_day'] = IA
+traffic.loc[traffic['state'] == 'Kansas', 'avg_state_acdnt_per_day'] = KS
+traffic.loc[traffic['state'] == 'Kentucky', 'avg_state_acdnt_per_day'] = KY
+traffic.loc[traffic['state'] == 'Louisiana', 'avg_state_acdnt_per_day'] = LA
+traffic.loc[traffic['state'] == 'Maine', 'avg_state_acdnt_per_day'] = ME
+traffic.loc[traffic['state'] == 'Maryland', 'avg_state_acdnt_per_day'] = MD
+traffic.loc[traffic['state'] == 'Massachusetts', 'avg_state_acdnt_per_day'] = MA
+traffic.loc[traffic['state'] == 'Michigan', 'avg_state_acdnt_per_day'] = MI
+traffic.loc[traffic['state'] == 'Minnesota', 'avg_state_acdnt_per_day'] = MN
+traffic.loc[traffic['state'] == 'Mississippi', 'avg_state_acdnt_per_day'] = MS
+traffic.loc[traffic['state'] == 'Missouri', 'avg_state_acdnt_per_day'] = MO
+traffic.loc[traffic['state'] == 'Montana', 'avg_state_acdnt_per_day'] = MT
+traffic.loc[traffic['state'] == 'Nebraska', 'avg_state_acdnt_per_day'] = NE
+traffic.loc[traffic['state'] == 'Nevada', 'avg_state_acdnt_per_day'] = NV
+traffic.loc[traffic['state'] == 'New Hampshire', 'avg_state_acdnt_per_day'] = NH
+traffic.loc[traffic['state'] == 'New Jersey', 'avg_state_acdnt_per_day'] = NJ
+traffic.loc[traffic['state'] == 'New Mexico', 'avg_state_acdnt_per_day'] = NM
+traffic.loc[traffic['state'] == 'New York', 'avg_state_acdnt_per_day'] = NY
+traffic.loc[traffic['state'] == 'North Carolina', 'avg_state_acdnt_per_day'] = NC
+traffic.loc[traffic['state'] == 'North Dakota', 'avg_state_acdnt_per_day'] = ND
+traffic.loc[traffic['state'] == 'Ohio', 'avg_state_acdnt_per_day'] = OH
+traffic.loc[traffic['state'] == 'Oklahoma', 'avg_state_acdnt_per_day'] = OK
+traffic.loc[traffic['state'] == 'Oregon', 'avg_state_acdnt_per_day'] = OR
+traffic.loc[traffic['state'] == 'Pennsylvania', 'avg_state_acdnt_per_day'] = PA
+traffic.loc[traffic['state'] == 'Rhode Island', 'avg_state_acdnt_per_day'] = RI
+traffic.loc[traffic['state'] == 'South Carolina', 'avg_state_acdnt_per_day'] = SC
+traffic.loc[traffic['state'] == 'South Dakota', 'avg_state_acdnt_per_day'] = SD
+traffic.loc[traffic['state'] == 'Tennessee', 'avg_state_acdnt_per_day'] = TN
+traffic.loc[traffic['state'] == 'Texas', 'avg_state_acdnt_per_day'] = TX
+traffic.loc[traffic['state'] == 'Utah', 'avg_state_acdnt_per_day'] = UT
+traffic.loc[traffic['state'] == 'Vermont', 'avg_state_acdnt_per_day'] = VT
+traffic.loc[traffic['state'] == 'Virginia', 'avg_state_acdnt_per_day'] = VA
+traffic.loc[traffic['state'] == 'Washington', 'avg_state_acdnt_per_day'] = WA
+traffic.loc[traffic['state'] == 'West Virginia', 'avg_state_acdnt_per_day'] = WV
+traffic.loc[traffic['state'] == 'Wisconsin', 'avg_state_acdnt_per_day'] = WI
+traffic.loc[traffic['state'] == 'Wyoming', 'avg_state_acdnt_per_day'] = WY
+
+
+traffic.head()
+
+traffic[traffic['state']=='Nevada'].to_clipboard()
+
+## 5
+Create chloropleth maps
+
+Map for state and average count of accidents per day
+
+#create dataframe of state and state accidents per day
+
+state_per_day = traffic[['state', 'avg_state_acdnt_per_day']]
+
+state_per_day.head()
+
+#create map for state and average accidents per day
+
+state_count_avg = folium.Map(location = [40,-100], zoom_start = 3.5)
+
+choropleth = folium.Choropleth(
+    geo_data = map_file,
+    data = state_per_day,
+    columns = ['state', 'avg_state_acdnt_per_day'],
+    key_on = 'feature.properties.NAME',
+    fill_color = 'YlGnBu', fill_opacity = 0.6, line_opacity = 0.1,
+    legend_name = "Avg Acdnt Per Day").add_to(state_count_avg)
+
+style_function = "font-size: 15px; font-weight: bold"
+choropleth.geojson.add_child(
+    folium.features.GeoJsonTooltip(['NAME'], style=style_function, labels=False))
+
+folium.LayerControl().add_to(state_count_avg)
+
+state_count_avg
+
+Map for state and avg severity
+
+#create datframe of state and severity average
+state_sev = traffic[['state', 'avg_state_sev']]
+
+state_sev.head()
+
+#drop duplicates for state_sev
+deduped_state_sev = state_sev.drop_duplicates()
+
+deduped_state_sev.shape
+
+#create map of states and their avg severity
+
+state_sev_avg = folium.Map(location = [40,-100], zoom_start = 3.5)
+
+choropleth = folium.Choropleth(
+    geo_data = map_file,
+    data = deduped_state_sev,
+    columns = ['state', 'avg_state_sev'],
+    key_on = 'feature.properties.NAME',
+    fill_color = 'YlGnBu', fill_opacity = 0.6, line_opacity = 0.1,
+    legend_name = "Avg Severity").add_to(state_sev_avg)
+
+style_function = "font-size: 15px; font-weight: bold"
+choropleth.geojson.add_child(
+    folium.features.GeoJsonTooltip(['NAME'], style=style_function, labels=False))
+
+folium.LayerControl().add_to(state_sev_avg)
+
+state_sev_avg
+
+#create a subset of traffic for accidents in wyoming
+wyoming = traffic[traffic['state'] == 'Wyoming']
+
+#histogram for severity variable for wyoming
+sns.histplot(wyoming['Severity'], bins=20, kde = True)
+
+#export map
+state_sev_avg.save(outfile= "state_sev_avg.html")
+
+While I did not directly answer any questions, exploring by average severity per state does show some interesting insights.
+Wyoming has the highest severity average of accidents and is much higher than its neighbors. 
+What variables in the data set Wyoming apart? What proportion of the severity 4 accidents are in Wyoming?
+
+While severity 2 is by far the most common level of accident, I had assumed higher state populations would have more low severity accidents. While population is not mapped this does not seem to be the case as low severity average is common across many states.
+
+There also does appear to be some consistency in the average severity by regions of midwest, west/north, northeast. The regions are not perfect but clumps of states do seem to show up all over.
+
+Map of state and average temp
+
+#create subset of state and  avg Temp
+state_temp = traffic[['state', 'avg_state_temp']]
+
+state_temp.head()
+
+#remove duplicaes from state temp data frame
+deduped_state_temp = state_temp.drop_duplicates()
+
+deduped_state_temp.shape
+
+#create map of states and their avg Temp
+
+state_temp_avg = folium.Map(location = [40,-100], zoom_start = 3.5)
+
+choropleth = folium.Choropleth(
+    geo_data = map_file,
+    data = deduped_state_temp,
+    columns = ['state', 'avg_state_temp'],
+    key_on = 'feature.properties.NAME',
+    fill_color = 'YlGnBu', fill_opacity = 0.6, line_opacity = 0.1,
+    legend_name = "Avg Temperature(F)").add_to(state_temp_avg)
+folium.LayerControl().add_to(state_sev_avg)
+
+style_function = "font-size: 15px; font-weight: bold"
+choropleth.geojson.add_child(
+    folium.features.GeoJsonTooltip(['NAME'], style=style_function, labels=False))
+
+state_temp_avg
+
+#export map
+state_temp_avg.save(outfile= "state_temp_avg.html")
+
+When looking at the first of 2 average weather values, it does seem that temperature inversley follows latitude pretty well. The few exceptions like New Mexico/Colorado(high altitude) or Washington/Oregon(coastal/rainforests) have pretty easy geographic explanations that would drop the temperature relative to their neighbors.
+
+While this may be oversimplyifying, this does seem to support the notion that accidents will happen regardless of weather.
+
+Map for state and precipitation
+
+#create subset of state and precipitation to map
+state_rain = traffic[['state', 'avg_state_rain']]
+
+state_rain.head()
+
+#drop the duplicates from state_rain
+deduped_state_rain = state_rain.drop_duplicates()
+
+deduped_state_rain.shape
+
+#create map of states and their precipitation 
+
+state_rain_avg = folium.Map(location = [40,-100], zoom_start = 3.5)
+
+choropleth = folium.Choropleth(
+    geo_data = map_file,
+    data = deduped_state_rain,
+    columns = ['state', 'avg_state_rain'],
+    key_on = 'feature.properties.NAME',
+    fill_color = 'YlGnBu', fill_opacity = 0.6, line_opacity = 0.1,
+    legend_name = "Avg Precipitation(in)").add_to(state_rain_avg)
+folium.LayerControl().add_to(state_rain_avg)
+
+style_function = "font-size: 15px; font-weight: bold"
+choropleth.geojson.add_child(
+    folium.features.GeoJsonTooltip(['NAME'], style=style_function, labels=False))
+
+state_rain_avg
+
+#export map
+state_rain_avg.save(outfile= "state_rain_avg.html")
+
+Rainfall seems very low across the states. Some googling tells me average rainfall per year for a state is around 30 inches. Per day that would be around 0.1. The top of the scale on this map is 0.02.
+
+This would indicate to me that excepting extreme events, rain is near irrelevant in the majority of accidents.
+
+## 6
+Plotting a heatmap
+
+#create a data frame of just the starting lat and lon
+lat_lon = traffic[['Start_Lat','Start_Lng']]
+
+lat_lon.head()
+
+#plot a heat map of accidents
+from folium import plugins
+
+heat_accident = folium.Map(location = [40,-100], zoom_start = 3.5)
+
+acc_lat_lon = lat_lon.values
+
+heat_accident.add_child(plugins.HeatMap(acc_lat_lon, radius = 12.5))
+
+heat_accident
+
+#export map
+heat_accident.save(outfile= "heat_accident.html")
+
+Los Angeles is the brightest spot. I suppose I had my expectations too high to expect all heat to be centered there.
+
+The spread of accdients by exact lat and lon is pretty spread out in the country.
+The hot spots do all look to center on cities which makes sense. This does further support that population is going to be a significant factor in accident liklihood. From the last excersise the most common POI present when accidents occur are Traffic Signals, then Junctions, then Crossings. These would be much more commonly found the higher the population of an area.
+
+Does this heatmap look the same as a heatmap of population?
+
+## 7
+Export data
+
+#export data
+traffic.to_csv(os.path.join(path, 'Prepared' , 'v3_data_post_geospatial_explore.csv'))
+
